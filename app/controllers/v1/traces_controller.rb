@@ -2,7 +2,7 @@ require 'json'
 
 module V1
   class TracesController < ApplicationController
-    public
+    skip_before_action :verify_authenticity_token
 
     def index # GET
       traces = Trace.all
@@ -19,17 +19,14 @@ module V1
       end
 
     def create # POST
-
-      binding.pry
-      request.body.rewind
-      raise ArgumentError if request.body.read.empty?
+      #request.body.rewind
+      #raise ArgumentError if request.body.read.empty?
       coordinates = JSON.parse(request.body.read)
       # initialize here to get variable out of the transaction block scope
       trace_id = nil
       ActiveRecord::Base.transaction do
         trace = Trace.new
         trace.save
-
         coordinates.each do |c|
           cord = Coordinate.new
           cord.trace_id = trace.id
@@ -39,18 +36,18 @@ module V1
         end
         trace_id = trace.id
       end
-
       result = build_trace_json(trace_id)
       render json: result
-      end
+    end
 
     def edit
       trace = Trace.find(params[:id])
       end
 
     def update # PATCH
+      trace = Trace.find(params[:id])
       ActiveRecord::Base.transaction do
-      	trace = Trace.find(params[:id])
+
 
         coordinates = Coordinate.where(trace_id: trace.id)
         coordinates.each do |c|
@@ -66,8 +63,8 @@ module V1
           cord.lon = c['longitude'].to_f
           cord.save
         end
-        result = build_trace_json(trace.id)
       end
+      result = build_trace_json(trace.id)
       render json: result
     end
 
